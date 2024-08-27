@@ -2,23 +2,40 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-
+static bool _validate_integer(const char *a);
 static char *_reverse(const char *a);
 static char *_negate(const char *a);
 static int _longest(const char *a, const char *b);
 static bool _is_larger(const char *a, const char *b);
-static char *_get_positive_sum(const char *a, const char *b);
+static char *_add_a_zero(const char *a);
+static int _get_digit(const char *a, int i);
+static char *_get_sum(const char *a, const char *b);
 static char *_get_difference(const char *a, const char *b);
-// char* abs(const char* a);
+char *absv(const char* a);
 char *add(const char *a, const char *b);
 char *subtract(const char *a, const char *b);
 char *multiply(const char *a, const char *b);
 char *divide(const char *a, const char *b);
+// TODO: exponents, factorials, modulo, permutations, combinations, binomial coefficients
+// TODO: scientific notation, rounding
+
+/**
+ * Returns true if the given string is an integer.
+ */
+static bool _validate_integer(const char *a)
+{
+    if (a[0] == '-')
+        return _validate_integer(a + 1);
+
+    for (int i = 0; i < strlen(a); i++) {
+        if (!isdigit(a[i]))
+            return false;
+    }
+
+    return true;
+}
 
 /**
  * Returns a reversed copy of the given string
@@ -26,14 +43,14 @@ char *divide(const char *a, const char *b);
  */
 static char *_reverse(const char *a)
 {
+    if (!_validate_integer(a))
+        return NULL;
+
     if (!a || !*a)
         return strdup(a);
 
     int length = strlen(a);
     char *x = calloc(length + 1, sizeof(char));
-
-    // for (int i = length - 1; i >= 0; i--)
-    //     x[i] = a[length - i - 1];
 
     for (int i = 0; i < length; i++)
         x[i] = a[length - i - 1];
@@ -47,13 +64,16 @@ static char *_reverse(const char *a)
  */
 static char *_negate(const char *a)
 {
-    if (a == NULL || *a == '\0')
-        return strdup("");
+    if (!_validate_integer(a))
+        return NULL;
 
     if (a[0] == '-')
         return strdup(a + 1);
 
     char *negated = malloc(strlen(a) + 2);
+    if (!negated)
+        return NULL;
+
     negated[0] = '-';
     strcpy(negated + 1, a);
 
@@ -79,6 +99,9 @@ static int _longest(const char *a, const char *b)
  */
 static bool _is_larger(const char *a, const char *b)
 {
+    if (!_validate_integer(a) || !_validate_integer(b))
+        return NULL;
+
     size_t a_length = strlen(a);
     size_t b_length = strlen(b);
 
@@ -92,11 +115,44 @@ static bool _is_larger(const char *a, const char *b)
 }
 
 /**
+ * Adds a zero to the end of the string (equivalent to multiplying by ten).
+ * The caller is responsible for freeing the returned string.
+ */
+static char *_add_a_zero(const char *a)
+{
+    if (!_validate_integer(a))
+        return NULL;
+
+    size_t len = strlen(a);
+    char *result = malloc(len + 2);
+    if (result == NULL)
+        return NULL;
+
+    strcpy(result, a);
+    result[len] = '0';
+    result[len + 1] = '\0';
+
+    return result;
+}
+
+/**
+ * Returns the digit as an int in the ith position of a.
+ * The caller is responsible for freeing the returned int.
+ */
+static int _get_digit(const char *a, int i)
+{
+    return a[i] - '0';
+}
+
+/**
  * Returns the sum of two positive integers.
  * The caller is responsible for freeing the returned string.
  */
-static char *_get_positive_sum(const char *a, const char *b)
+static char *_get_sum(const char *a, const char *b)
 {
+    if (!_validate_integer(a) || !_validate_integer(b))
+        return NULL;
+
     size_t length_a = strlen(a);
     size_t length_b = strlen(b);
 
@@ -104,7 +160,9 @@ static char *_get_positive_sum(const char *a, const char *b)
     char *y = _reverse(b);
 
     size_t longest = _longest(a, b);
-    char *sum = calloc(longest + 2, sizeof(char));
+    char *sum = malloc(longest + 2);
+    if (!sum)
+        return NULL;
 
     unsigned int carry = 0;
     unsigned int sub_sum;
@@ -140,6 +198,9 @@ static char *_get_positive_sum(const char *a, const char *b)
  */
 static char *_get_difference(const char *a, const char *b)
 {
+    if (!_validate_integer(a) || !_validate_integer(b))
+        return NULL;
+
     if (strcmp(a, b) == 0)
         return strdup("0");
 
@@ -148,7 +209,9 @@ static char *_get_difference(const char *a, const char *b)
 
     size_t a_length = strlen(a);
     size_t b_length = strlen(b);
-    char *difference = calloc(a_length + 1, sizeof(char));
+    char *difference = malloc(a_length + 1);
+    if (!difference)
+        return NULL;
 
     int borrow = 0;
     int sub_diff;
@@ -191,63 +254,60 @@ static char *_get_difference(const char *a, const char *b)
 
     return result;
 }
-// static char *_get_difference(const char *a, const char *b)
-// {
-//     if (strcmp(a, b) == 0)
-//         return strdup("0");
 
-//     char *x = _reverse(a);
-//     char *y = _reverse(b);
+/**
+ * Returns a added to itself b times.
+ * Assumes a and b are positive integers.
+ * Caller is responsible for freeing the returned string.
+ */
+static char *_get_product(char *a, char *b)
+{
+    if (!_validate_integer(a) || !_validate_integer(b))
+        return NULL;
 
-//     int sub_diff;
-//     char t[2];
-//     int i;
-//     int borrow = 0;
-//     char *difference = calloc(strlen(a) + 1, sizeof(char));
+    char *result = strdup("0");
+    char *rev_a = _reverse(a);
 
-//     for (i = 0; i < strlen(y); i++) {
-//         sub_diff = (x[i] - '0') - (y[i] - '0') - borrow;
-//         if (sub_diff < 0) {
-//             sub_diff += 10;
-//             borrow = 1;
-//         } else {
-//             borrow = 0;
-//         }
-//         sprintf(t, "%d", sub_diff);
-//         strncat(difference, t, 1);
-//     }
+    for (size_t i = 0; i < strlen(rev_a); i++) {
+        int x = _get_digit(rev_a, i);
+        char *sub_sum = strdup("0");
 
-//     if (strlen(a) > strlen(b))
-//         while (i < strlen(a))
-//             strncat(difference, &a[i++], 1);
+        for (int j = 0; j < x; j++) {
+            char *temp = _get_sum(sub_sum, b);
+            free(sub_sum);
+            sub_sum = temp;
+        }
 
-//     char *result = _reverse(difference);
-//     i = 0;
-//     while (result[i] == '0')
-//         i++;
+        for (int j = 0; j < i; j++) {
+            char *temp = _add_a_zero(sub_sum);
+            free(sub_sum);
+            sub_sum = temp;
+        }
 
-//     char *final_result = strdup(&result[i]);
+        char *temp = _get_sum(result, sub_sum);
+        free(result);
+        result = temp;
+        free(sub_sum);
+    }
 
-//     free(result);
-//     free(difference);
-//     return final_result;
-// }
+    free(rev_a);
+    return result;
+}
 
 /**
  * Returns the absolute value of the given number
  * The caller is responsible for freeing the returned string.
  */
-// char* abs(const char* a) {
-//     if (a == NULL || *a == '\0') {
-//         return strdup("");
-//     }
+char *absv(const char* a) {
+    if (!_validate_integer(a))
+        return NULL;
 
-//     if (a[0] == '-') {
-//         return strdup(a + 1);
-//     }
+    if (a[0] == '-') {
+        return strdup(a + 1);
+    }
 
-//     return strdup(a);
-// }
+    return strdup(a);
+}
 
 /**
  * Returns the sum of two integers.
@@ -255,6 +315,9 @@ static char *_get_difference(const char *a, const char *b)
  */
 char *add(const char *a, const char *b)
 {
+    if (!_validate_integer(a) || !_validate_integer(b))
+        return NULL;
+
     if (a[0] == '-' && b[0] != '-') {
         char *a_pos = _negate(a);
         char *result = subtract(b, a_pos);
@@ -272,13 +335,13 @@ char *add(const char *a, const char *b)
     if (a[0] == '-' && b[0] == '-') {
         char *a_pos = _negate(a);
         char *b_pos = _negate(b);
-        char *result = _get_positive_sum(a_pos, b_pos);
+        char *result = _get_sum(a_pos, b_pos);
         free(a_pos);
         free(b_pos);
         return _negate(result);
     }
 
-    return _get_positive_sum(a, b);
+    return _get_sum(a, b);
 }
 
 /**
@@ -287,6 +350,9 @@ char *add(const char *a, const char *b)
  */
 char *subtract(const char *a, const char *b)
 {
+    if (!_validate_integer(a) || !_validate_integer(b))
+        return NULL;
+
     if (strcmp(a, b) == 0)
         return strdup("0");
 
@@ -308,7 +374,22 @@ char *subtract(const char *a, const char *b)
  */
 char *multiply(const char *a, const char *b)
 {
-    char *result = calloc(1, sizeof(char));
+    if (!_validate_integer(a) || !_validate_integer(b))
+        return NULL;
+
+    char *abs_a = absv(a);
+    char *abs_b = absv(b);
+
+    char *result = _get_product(abs_a, abs_b);
+
+    free(abs_a);
+    free(abs_b);
+
+    if ((a[0] == '-' && b[0] != '-') || (a[0] != '-' && b[0] == '-')) {
+        char *negated_result = _negate(result);
+        free(result);
+        return negated_result;
+    }
 
     return result;
 }
@@ -319,38 +400,55 @@ char *multiply(const char *a, const char *b)
  */
 char *divide(const char *a, const char *b)
 {
+    if (!_validate_integer(a) || !_validate_integer(b))
+        return NULL;
+
     char *result = calloc(1, sizeof(char));
 
     return result;
 }
 
 int main() {
-    char *a = "8";
-    char *b = "4";
+    char *a = "100";
+    char *b = "99";
+    char *x = "-100";
+    char *y = "-99";
 
-    char *sum = add(a, b);
-    char *difference = subtract(a, b);
-    char *product = multiply(a, b);
-    char *quotient = divide(a, b);
+    printf("%s + %s = %s\n", a, b, add(a, b));
+    printf("%s + %s = %s\n", b, a, add(b, a));
+    printf("%s + %s = %s\n", y, x, add(y, x));
+    printf("%s + %s = %s\n", x, y, add(x, y));
+    printf("%s + %s = %s\n", b, x, add(b, x));
+    printf("%s + %s = %s\n", x, b, add(x, b));
+    printf("%s + %s = %s\n", y, a, add(y, a));
+    printf("%s + %s = %s\n", a, y, add(a, y));
 
-    printf("a + b = %s\n", sum);
-    printf("a - b = %s\n", difference);
-    printf("a * b = %s\n", product);
-    printf("a ÷ b = %s\n", quotient);
+    printf("%s - %s = %s\n", a, b, subtract(a, b));
+    printf("%s - %s = %s\n", b, a, subtract(b, a));
+    printf("%s - %s = %s\n", y, x, subtract(y, x));
+    printf("%s - %s = %s\n", x, y, subtract(x, y));
+    printf("%s - %s = %s\n", b, x, subtract(b, x));
+    printf("%s - %s = %s\n", x, b, subtract(x, b));
+    printf("%s - %s = %s\n", y, a, subtract(y, a));
+    printf("%s - %s = %s\n", a, y, subtract(a, y));
 
-    printf("%s - %s = %s\n", "1000", "999", subtract("1000", "999"));
-    printf("%s - %s = %s\n", "999", "1000", subtract("999", "1000"));
-    printf("%s - %s = %s\n", "-999", "-1000", subtract("-999", "-1000"));
-    printf("%s - %s = %s\n", "-1000", "-999", subtract("-1000", "-999"));
-    printf("%s - %s = %s\n", "999", "-1000", subtract("-999", "-1000"));
-    printf("%s - %s = %s\n", "-1000", "999", subtract("-1000", "-999"));
-    printf("%s - %s = %s\n", "-999", "1000", subtract("-999", "-1000"));
-    printf("%s - %s = %s\n", "1000", "-999", subtract("-1000", "-999"));
+    printf("%s x %s = %s\n", a, b, multiply(a, b));
+    printf("%s x %s = %s\n", b, a, multiply(b, a));
+    printf("%s x %s = %s\n", y, x, multiply(y, x));
+    printf("%s x %s = %s\n", x, y, multiply(x, y));
+    printf("%s x %s = %s\n", b, x, multiply(b, x));
+    printf("%s x %s = %s\n", x, b, multiply(x, b));
+    printf("%s x %s = %s\n", y, a, multiply(y, a));
+    printf("%s x %s = %s\n", a, y, multiply(a, y));
 
-    free(sum);
-    free(difference);
-    free(product);
-    free(quotient);
+    printf("%s ÷ %s = %s\n", a, b, divide(a, b));
+    printf("%s ÷ %s = %s\n", b, a, divide(b, a));
+    printf("%s ÷ %s = %s\n", y, x, divide(y, x));
+    printf("%s ÷ %s = %s\n", x, y, divide(x, y));
+    printf("%s ÷ %s = %s\n", b, x, divide(b, x));
+    printf("%s ÷ %s = %s\n", x, b, divide(x, b));
+    printf("%s ÷ %s = %s\n", y, a, divide(y, a));
+    printf("%s ÷ %s = %s\n", a, y, divide(a, y));
 
     return 0;
 }
